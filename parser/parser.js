@@ -8,17 +8,52 @@ class Parser {
         console.log("asin:" + this.asin + "current_used:" + this.current_used + "current_new:" + this.current_new + "current_amazon:" + this.doc);
     }
 
-    offer_list(){
+	offer_list(){
 		var doc = this.page.find('#aod-container');
 		var offer_list_container = doc.find('#aod-offer-list');
 		var products = offer_list_container.find('#aod-offer');
-		if(this.offer_type == "mf_new" || this.offer_type == "fba_new"){
-			var pin_offer = this.pinned_offer();
-			if( pin_offer.find("#aod-offer-heading h5").text().trim().toLowerCase() == "new" )
-				products.push(pin_offer[0]);
+
+		if(this.offer_type == "fba_new" || this.offer_type == "fba_used" ){
+			var arr = []
+			$.each(products,function(index,product){
+				if( (this.is_amazon_seller(this.product_seller(product)) || this.is_amazon_shipper(this.product_shipper(product))) && !$(product).find(".aod-delivery-promise-message .a-color-error").length ){
+					arr.push(product);
+				}
+			});
+			products = arr;	
 		}
+		else if(this.offer_type == "mf_new" || this.offer_type == "mf_used"){
+			var arr = []
+			$.each(products,function(index,product){
+				if( !this.is_amazon_seller(this.product_seller(product)) && !this.is_amazon_shipper(this.product_shipper(product)) && !$(product).find(".aod-delivery-promise-message .a-color-error").length ){
+					arr.push(product);
+				}
+			});
+			products = arr;
+		}
+
+		var pin_offer = this.pinned_offer(page);
+		if(pin_offer.length && !pin_offer.find(".aod-delivery-promise-message .a-color-error").length){
+			if( pin_offer.find("#aod-offer-heading h5").text().trim().toLowerCase() == "new" ){
+				if( ( this.is_amazon_seller(this.product_seller(pin_offer[0])) || this.is_amazon_shipper(this.product_shipper(pin_offer[0])) ) && this.offer_type == "fba_new" ){
+					products.push(pin_offer[0]);
+				}
+				else if( !this.is_amazon_seller(this.product_seller(pin_offer[0])) && !this.is_amazon_shipper(this.product_shipper(pin_offer[0])) && this.offer_type == "mf_new" ){
+					products.push(pin_offer[0]);
+				}
+			} 
+			else if( pin_offer.find("#aod-offer-heading h5").text().trim().toLowerCase().includes("used") ){
+				if( ( this.is_amazon_seller(this.product_seller(pin_offer[0])) || this.is_amazon_shipper(this.product_shipper(pin_offer[0])) ) && this.offer_type == "fba_used" ){
+					products.push(pin_offer[0]);
+				}
+				else if( !this.is_amazon_seller(this.product_seller(pin_offer[0])) && !this.is_amazon_shipper(this.product_shipper(pin_offer[0])) && this.offer_type == "mf_used" ){
+					products.push(pin_offer[0]);
+				}
+			} 
+		}
+
 		return products;
-    }
+	}
     
     pinned_offer(){
 		var doc = this.page.find('#aod-container');
